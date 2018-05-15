@@ -169,7 +169,7 @@ def mytrain(net,train_data,valid_data,ctx,start_epoch, end_epoch, cls_loss,box_l
 
 
 if __name__ == '__main__':
-    batch_size = 2
+    batch_size = 4
     #1. get dataset and show
     train_data,valid_data,class_names,num_classes = get_iterators(rec_prefix,data_shape,batch_size)
 

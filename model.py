@@ -32,7 +32,7 @@ def get_mobilenet_1_conv(ctx):
 
 def get_resnet18_conv(ctx):
     # if pretrained is false ,you must load param manually
-    resnet18net = model_zoo.vision.resnet18_v1(pretrained = True,ctx = ctx,prefix='ssd_')
+    resnet18net = model_zoo.vision.resnet18_v1(pretrained = False,ctx = ctx,prefix='ssd_')
     # resnet18net.load_params('/home/wk/.mxnet/models/resnet18_v1-38d6d423.params')
     net = nn.HybridSequential()
     # net.initialize()

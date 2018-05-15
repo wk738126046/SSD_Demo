@@ -18,8 +18,9 @@ def load_weight():
     ratios_list = myDect_config.ratios_list
     ctx = myDect_config.ctx
     net = SSD(num_class,sizes_list,ratios_list,ctx,prefix='ssd_')
-    net.load_params('./Model/mobilenet1.0_papercupDetect.param',ctx=ctx)
-    # net.load_params('./Model/sdl_coin_vgg11bn29_512x512_data_sizes.param')
+    # net.load_params('./Model/mobilenet1.0_papercupDetect.param',ctx=ctx)
+    net.load_params('./Model/resnet18_papercupDetect.param',ctx=ctx)
+    # net.load_params('./Model/vgg11bn29_512x512_data_sizes.param')
     return net
 
 def predict(img_nd,net):
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     #         img_paths.append(root+file)
     #
     net = load_weight()
-    outs = detector(net, img_paths,threshold=0.25)
+    outs = detector(net, img_paths,threshold=0.3)
     print(outs)
     for i, out in enumerate(outs):
         _, figs = plt.subplots()
