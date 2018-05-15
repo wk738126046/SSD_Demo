@@ -47,10 +47,8 @@ param = net.collect_param().get('conv0_weight').data()
 预测部分位于[predict.py]中。修改其中的图片路径与模型路径，直接执行即可。
 基于resnet18_v1训练模型(链接: https://pan.baidu.com/s/1cvVe8Mj4HU-MKG7q7qagGQ 密码: kub9)
 
-### 7. 模型检测
-检测详见predict.py文件，修改文件路径即可（img_paths）
-
-### 8. 检测结果
+### 7. 检测结果
 采用resnet18训练的结果，GPU限制效果一般。batch太小，过拟合比较严重。后期在服务器上尝试炼丹
-
 ![result](https://github.com/wk738126046/SSD_Demo/blob/master/results_0.png)
+
+
