@@ -48,7 +48,7 @@ def class_predictor(num_class,num_anchors):
 def box_predictor(num_anchors):
     return nn.Conv2D(num_anchors*4,kernel_size=3,strides=1,padding=1)
 
-#anchor box (need kmeans)
+#anchor box ()
 sizes_list = [[0.17720574, 0.23724939], [0.30426919, 0.40458742], [.37, .619],
               [.71, .79], [.88, .961]]
 
@@ -67,8 +67,8 @@ class SSD(nn.HybridBlock):
         # net = vgg11bn + down_sample(*3) + classify/regression(*5)
         with self.name_scope():
             #part1
-            # self.body = get_vgg11bn_conv(ctx)
-            self.body = get_mobilenet_1_conv(ctx)
+            self.body = get_vgg11bn_conv(ctx)
+            # self.body = get_mobilenet_1_conv(ctx)
             #part2
             self.down_sample = nn.HybridSequential()
             for _ in range(len(sizes_list)-2):
@@ -79,6 +79,7 @@ class SSD(nn.HybridBlock):
             for _ in range(len(sizes_list)):
                 self.class_predictors.add(class_predictor(num_class,num_anchors))
                 self.box_predictors.add(box_predictor(num_anchors))
+
             self.down_sample.initialize(ctx=ctx)
             self.class_predictors.initialize(ctx=ctx)
             self.box_predictors.initialize(ctx=ctx)

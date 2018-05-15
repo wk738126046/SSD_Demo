@@ -11,7 +11,6 @@ from mxnet import gluon
 
 
 data_shape = (3,512,512)
-batch_size = 4
 std = np.array([61.04467501, 60.03631381, 60.7750983 ])
 rgb_mean = np.array([ 130.063048,  129.967301,  124.410760])
 ctx = mx.gpu(0)
@@ -29,11 +28,11 @@ class FocalLoss(gluon.loss.Loss):
         self.axis = axis
         self.batch_axis = batch_axis
 
-    def hybrid_forward(self, F, y,label):
-        y=F.softmax(y)
-        py = y.pick(label,axis=self.axis,keepdims=True)
-        loss = -(self.alpha *((1-py)**self.gamma))*nd.log(py)
-        return nd.mean(loss,axis=self.batch_axis,exclude=True)
+    def hybrid_forward(self, F, y, label):
+        y = F.softmax(y)
+        py = y.pick(label, axis=self.axis, keepdims=True)
+        loss = - (self.alpha * ((1 - py) ** self.gamma)) * py.log()
+        return loss.mean(axis=self.batch_axis, exclude=True)
 
 class SmoothL1Loss(gluon.loss.Loss):
     def __init__(self,batch_axis=0,**kwargs):
@@ -67,6 +66,7 @@ def evaluate_acc(net,data_iter,ctx):
     for i, batch in enumerate(data_iter):
         data = batch.data[0].as_in_context(ctx)
         label = batch.label[0].as_in_context(ctx)
+        # print('acc',label.shape)
         anchors,box_preds,cls_preds = net(data)
         #MultiBoxTraget 作用是将生成的anchors与哪些ground truth对应，提取出anchors的偏移和对应的类型
         #预测的误差是每次网络输出的预测框g与anchors的差分别/anchor[xywh]，然后作为smoothL1（label-g）解算，g才是预测
@@ -77,7 +77,7 @@ def evaluate_acc(net,data_iter,ctx):
         cls_probs = nd.SoftmaxActivation(cls_preds.transpose((0,2,1)),mode='channel')
         #对输出的bbox通过NMS极大值抑制算法筛选检测框
         out = MultiBoxDetection(cls_probs,box_preds,anchors,force_suppress=True, clip=False, nms_threshold=0.45)
-        if out is None:
+        if outs is None:
             outs = out
             labels = label
         else:
@@ -88,14 +88,19 @@ def evaluate_acc(net,data_iter,ctx):
 
 
 info = {"train_ap": [], "valid_ap": [], "loss": []}
+def plot(key):
+    plt.plot(range(len(info[key])), info[key], label=key)
 
-def mytrain(net,train_data,start_epoch, end_epoch, cls_loss,box_loss,trainer=None):
+
+def mytrain(net,train_data,valid_data,start_epoch, end_epoch, cls_loss,box_loss,trainer=None):
     if trainer is None:
-        trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.5, 'wd': 5e-4})
+        trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.3, 'wd': 5e-4})
     box_metric = metric.MAE()
 
     for e in range(start_epoch, end_epoch):
+        # print(e)
         train_data.reset()
+        valid_data.reset()
         box_metric.reset()
         tic = time.time()
         _loss = [0, 0]
@@ -106,10 +111,10 @@ def mytrain(net,train_data,start_epoch, end_epoch, cls_loss,box_loss,trainer=Non
         for i, batch in enumerate(train_data):
             data = batch.data[0].as_in_context(ctx)
             label = batch.label[0].as_in_context(ctx)
-
+            # print(label.shape)
             with autograd.record():
                 anchors, box_preds, cls_preds = net(data)
-                # print(anchors, box_preds, cls_preds)
+                # print(anchors.shape,box_preds.shape,cls_preds.shape)
                 # negative_mining_ratio，在生成的mask中增加*3的反例参加loss的计算。
                 box_offset, box_mask, cls_labels = MultiBoxTarget(anchors, label, cls_preds.transpose(axes=(0, 2, 1)),
                                                                   negative_mining_ratio=3.0)  # , overlap_threshold=0.75)
@@ -117,7 +122,7 @@ def mytrain(net,train_data,start_epoch, end_epoch, cls_loss,box_loss,trainer=Non
                 loss1 = cls_loss(cls_preds, cls_labels)
                 loss2 = box_loss(box_preds, box_offset, box_mask)
                 loss = loss1 + loss2
-                # print(loss)
+                # print(loss1.shape,loss2.shape)
             loss.backward()
             trainer.step(data.shape[0])
             _loss[0] += nd.mean(loss1).asscalar()
@@ -135,7 +140,7 @@ def mytrain(net,train_data,start_epoch, end_epoch, cls_loss,box_loss,trainer=Non
             box_metric.update([box_offset], [box_preds * box_mask])
 
         train_AP = evaluate_MAP(outs, labels)
-        valid_AP, val_box_metric = evaluate_acc(valid_data, ctx)
+        valid_AP, val_box_metric = evaluate_acc(net,valid_data, ctx)
         info["train_ap"].append(train_AP)
         info["valid_ap"].append(valid_AP)
         info["loss"].append(_loss)
@@ -146,29 +151,51 @@ def mytrain(net,train_data,start_epoch, end_epoch, cls_loss,box_loss,trainer=Non
             print("train mae: %.4f AP: %.4f" % (box_metric.get()[1], train_AP))
             print("valid mae: %.4f AP: %.4f" % (val_box_metric.get()[1], valid_AP))
 
+    if True:
+        info["loss"] = np.array(info["loss"])
+        info["cls_loss"] = info["loss"][:, 0]
+        info["box_loss"] = info["loss"][:, 1]
+
+        plt.figure(figsize=(12, 4))
+        plt.subplot(121)
+        plot("train_ap")
+        plot("valid_ap")
+        plt.legend(loc="upper right")
+        plt.subplot(122)
+        plot("cls_loss")
+        plot("box_loss")
+        plt.legend(loc="upper right")
+        plt.savefig('loss_curve.png')
+
 
 if __name__ == '__main__':
+    batch_size = 2
     #1. get dataset and show
     train_data,valid_data,class_names,num_classes = get_iterators(rec_prefix,data_shape,batch_size)
+
+    # train_data.reset()
     ##label数量需要大于等于3
     if train_data.next().label[0][0].shape[0] < 3:
         train_data.reshape(label_shape=(3, 5))
-    valid_data.sync_label_shape(train_data)
+        valid_data.reshape(label_shape=(3, 5))
+    # valid_data.sync_label_shape(train_data)
 
-    train_data.reset()
-    batch = train_data.next()
-    images = batch.data[0][:].as_in_context(mx.gpu(0))
-    labels = batch.label[0][:].as_in_context(mx.gpu(0))
-    show_images(images.asnumpy(),labels.asnumpy(),rgb_mean,std,show_text=True,fontsize=6,MN=(2,4))
-    print(labels.shape)
+
+    if False:
+        batch = train_data.next()
+        images = batch.data[0][:].as_in_context(mx.gpu(0))
+        labels = batch.label[0][:].as_in_context(mx.gpu(0))
+        show_images(images.asnumpy(),labels.asnumpy(),rgb_mean,std,show_text=True,fontsize=6,MN=(2,4))
+        print(labels.shape)
 
     #2. net initialize
-    net = SSD(1,verbose=True,prefix='ssd_')
+    net = SSD(1,verbose=False,prefix='ssd_')
+    # net.hybridize() # MultiBoxPrior cannot support symbol
     # print(net)
-    tic = time.time()
-    anchors,box_preds,cls_preds = net(images)
-    print(time.time()-tic)
-    print(net)
+    # tic = time.time()
+    # anchors,box_preds,cls_preds = net(images)
+    # print(time.time()-tic)
+    # print(net)
     #MultiBoxTraget 作用是将生成的anchors与哪些ground truth对应，提取出anchors的偏移和对应的类型
     #预测的误差是每次网络的预测框g与anchors的差分别/anchor[xywh]，然后作为smoothL1（label-g）解算，g才是预测
     # box_offset,box_mask,cls_labels = MultiBoxTarget(anchors,batch.label[0],cls_preds)
@@ -176,9 +203,11 @@ if __name__ == '__main__':
     #                                                   cls_preds.transpose((0, 2, 1)))
 
     #3. loss define
-    # cls_loss = FocalLoss()
-    # box_loss = SmoothL1Loss()
+    cls_loss = FocalLoss() # predict
+    box_loss = SmoothL1Loss() # regression
 
     #4. train
-    # mytrain(net, train_data, 0, 200, cls_loss, box_loss)
-    # net.save_params("./model/papercupDetect.param")
+    mytrain(net, train_data,valid_data, 0, 200, cls_loss, box_loss)
+    mkdir_if_not_exist("./Model")
+    # net.save_params("./Model/mobilenet1.0_papercupDetect.param")
+    net.save_params("./Model/vgg11_papercupDetect.param")
