@@ -20,3 +20,29 @@ img = cv2.imread(imgpath)
 b, g, r = cv2.split(img)
 img = cv2.merge([r, g, b])
 ```
+
+### 3. 载入数据
+读取rec文件的代码位于[data_loader.py]。读取时使用了数据增强的方法，这样每次
+读取batch时会对图片随机加入一些扰动，增加模型的泛化能力。
+
+### 4. 模型定义
+
+模型定义于文件[model.py]。可通过修改该程序的66行将SSD的bodynet更改为其他模型。
+默认使用的是mobilenet1_0（预训练文件18M大小）。
+tip:使用预训练网络的参数时pertrained=true，默认为false指只使用网络，参数需要initialize。
+需要注意将模型前缀定义一致: prefix="name_"
+获取参数方法：
+```cython
+#使用net.collect_param().keys()查看参数名（不需要name_scope前缀）
+
+param = net.collect_param().get('conv0_weight').data()
+```
+
+### 5. 模型训练
+训练文件见 train.py 
+另外，在[data_analysis.ipynb]中统计了数据集size的分布。
+
+### 6. 模型预测
+
+预测部分位于[predict.py]中。修改其中的图片路径与模型路径，直接执行即可。
+基于VGG11训练[weight]()

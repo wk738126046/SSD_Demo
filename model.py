@@ -26,7 +26,17 @@ def get_mobilenet_1_conv(ctx):
     mobilenet = model_zoo.vision.mobilenet1_0(pretrained=True,ctx=ctx)
     net = nn.HybridSequential()
     net.add(*(mobilenet.features[:33]))
+    # net.add(*(mobilenet.features[:72]))#72/81
     # net.initialize(ctx=ctx)
+    return net
+
+def get_resnet18_conv(ctx):
+    # if pretrained is false ,you must load param manually
+    resnet18net = model_zoo.vision.resnet18_v1(pretrained = True,ctx = ctx,prefix='ssd_')
+    # resnet18net.load_params('/home/wk/.mxnet/models/resnet18_v1-38d6d423.params')
+    net = nn.HybridSequential()
+    # net.initialize()
+    net.add(*(resnet18net.features[:8]))
     return net
 
 # maxpool down sample
@@ -67,8 +77,9 @@ class SSD(nn.HybridBlock):
         # net = vgg11bn + down_sample(*3) + classify/regression(*5)
         with self.name_scope():
             #part1
-            self.body = get_vgg11bn_conv(ctx)
+            # self.body = get_vgg11bn_conv(ctx)
             # self.body = get_mobilenet_1_conv(ctx)
+            self.body = get_resnet18_conv(ctx)
             #part2
             self.down_sample = nn.HybridSequential()
             for _ in range(len(sizes_list)-2):

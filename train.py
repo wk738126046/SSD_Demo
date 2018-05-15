@@ -92,7 +92,7 @@ def plot(key):
     plt.plot(range(len(info[key])), info[key], label=key)
 
 
-def mytrain(net,train_data,valid_data,start_epoch, end_epoch, cls_loss,box_loss,trainer=None):
+def mytrain(net,train_data,valid_data,ctx,start_epoch, end_epoch, cls_loss,box_loss,trainer=None):
     if trainer is None:
         trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.3, 'wd': 5e-4})
     box_metric = metric.MAE()
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     box_loss = SmoothL1Loss() # regression
 
     #4. train
-    mytrain(net, train_data,valid_data, 0, 200, cls_loss, box_loss)
+    mytrain(net, train_data,valid_data,ctx, 0, 200, cls_loss, box_loss)
     mkdir_if_not_exist("./Model")
     # net.save_params("./Model/mobilenet1.0_papercupDetect.param")
-    net.save_params("./Model/vgg11_papercupDetect.param")
+    net.save_params("./Model/resnet18_papercupDetect.param")
