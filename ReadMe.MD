@@ -52,4 +52,5 @@ param = net.collect_param().get('conv0_weight').data()
 
 ### 8. 检测结果
 采用resnet18训练的结果，GPU限制效果一般。batch太小，过拟合比较严重。后期在服务器上尝试炼丹
-！[result](https://github.com/wk738126046/SSD_Demo/blob/master/results_0.png)
+
+![result](https://github.com/wk738126046/SSD_Demo/blob/master/results_0.png)
