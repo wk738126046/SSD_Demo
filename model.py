@@ -9,6 +9,7 @@ from mxnet.gluon import model_zoo
 from mxnet.ndarray.contrib import MultiBoxPrior
 from mxnet import ndarray as nd
 import mxnet as mx
+import myDect_config
 
 def get_alexnet_conv(ctx):
     alexnet = model_zoo.vision.alexnet(pretrained=True,ctx=ctx)
@@ -32,7 +33,7 @@ def get_mobilenet_1_conv(ctx):
 
 def get_resnet18_conv(ctx):
     # if pretrained is false ,you must load param manually
-    resnet18net = model_zoo.vision.resnet18_v1(pretrained = False,ctx = ctx,prefix='ssd_')
+    resnet18net = model_zoo.vision.resnet18_v1(pretrained = True,ctx = ctx,prefix='ssd_')
     # resnet18net.load_params('/home/wk/.mxnet/models/resnet18_v1-38d6d423.params')
     net = nn.HybridSequential()
     # net.initialize()
@@ -59,10 +60,12 @@ def box_predictor(num_anchors):
     return nn.Conv2D(num_anchors*4,kernel_size=3,strides=1,padding=1)
 
 #anchor box ()
-sizes_list = [[0.17720574, 0.23724939], [0.30426919, 0.40458742], [.37, .619],
-              [.71, .79], [.88, .961]]
+# sizes_list = [[0.17720574, 0.23724939], [0.30426919, 0.40458742], [.37, .619],
+#               [.71, .79], [.88, .961]]
+sizes_list = myDect_config.sizes_list
 
-ratios_list = [[1,2,.5]]*len(sizes_list)
+# ratios_list = [[1,2,.5]]*len(sizes_list)
+ratios_list = myDect_config.ratios_list*len(sizes_list)
 
 class SSD(nn.HybridBlock):
     def __init__(self,num_class,sizes_list=sizes_list,ratios_list=ratios_list,ctx=mx.gpu(0),

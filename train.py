@@ -94,7 +94,8 @@ def plot(key):
 
 def mytrain(net,train_data,valid_data,ctx,start_epoch, end_epoch, cls_loss,box_loss,trainer=None):
     if trainer is None:
-        trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.3, 'wd': 5e-4})
+        # trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.01,'momentum':0.9, 'wd':5e-1})
+        trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': 0.1, 'wd':1e-3})
     box_metric = metric.MAE()
 
     for e in range(start_epoch, end_epoch):
@@ -104,8 +105,8 @@ def mytrain(net,train_data,valid_data,ctx,start_epoch, end_epoch, cls_loss,box_l
         box_metric.reset()
         tic = time.time()
         _loss = [0, 0]
-        if e == 100 or e == 150 or e == 180:
-            trainer.set_learning_rate(trainer.learning_rate * 0.5)
+        if e == 100 or e == 120 or e == 150 or e == 180 or e==200:
+            trainer.set_learning_rate(trainer.learning_rate * 0.2)
 
         outs, labels = None, None
         for i, batch in enumerate(train_data):
@@ -146,7 +147,7 @@ def mytrain(net,train_data,valid_data,ctx,start_epoch, end_epoch, cls_loss,box_l
         info["loss"].append(_loss)
 
         if (e + 1) % 10 == 0:
-            print("epoch: %d time: %.2f loss: %.4f, %.4f lr: %.4f" % (
+            print("epoch: %d time: %.2f loss: %.4f, %.4f lr: %.5f" % (
             e, time.time() - tic, _loss[0], _loss[1], trainer.learning_rate))
             print("train mae: %.4f AP: %.4f" % (box_metric.get()[1], train_AP))
             print("valid mae: %.4f AP: %.4f" % (val_box_metric.get()[1], valid_AP))
@@ -207,7 +208,7 @@ if __name__ == '__main__':
     box_loss = SmoothL1Loss() # regression
 
     #4. train
-    mytrain(net, train_data,valid_data,ctx, 0, 200, cls_loss, box_loss)
+    mytrain(net, train_data,valid_data,ctx, 0, 220, cls_loss, box_loss)
     mkdir_if_not_exist("./Model")
     # net.save_params("./Model/mobilenet1.0_papercupDetect.param")
     net.save_params("./Model/resnet18_papercupDetect.param")

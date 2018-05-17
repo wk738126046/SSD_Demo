@@ -36,8 +36,8 @@ def get_iterators(rec_prefix, data_shape, batch_size):
         contrast=0.2,
         saturation=0.2,
         hue=0.05,
-        aspect_ratio_range=(0.5, 2),
-        pca_noise=0.01,
+        aspect_ratio_range=(0.8, 1.2),
+        # pca_noise=0.01,
     )
 
     valid_iter = image.ImageDetIter(

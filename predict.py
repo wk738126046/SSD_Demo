@@ -19,6 +19,7 @@ def load_weight():
     ctx = myDect_config.ctx
     net = SSD(num_class,sizes_list,ratios_list,ctx,prefix='ssd_')
     # net.load_params('./Model/mobilenet1.0_papercupDetect.param',ctx=ctx)
+    # net.load_params('./results/mobilenet1.0/2/mobilenet1_papercupDetect.param',ctx=ctx)
     net.load_params('./Model/resnet18_papercupDetect.param',ctx=ctx)
     # net.load_params('./Model/vgg11bn29_512x512_data_sizes.param')
     return net
